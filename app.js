@@ -3,12 +3,15 @@ const express = require('express');
 const expressApp = express();
 const request = require('request');
 var requestsync = require('sync-request');
+const nlu = require('./nlu')
+const dialog = require('./dialog')
 
 const TOKEN = "673991362:AAGub1g6JuwBDV6Slvm2e3KuWBtZEzGfppg";
 
 const bot = new Telegraf(TOKEN)
 expressApp.use(bot.webhookCallback('/secret-path'));
-bot.telegram.setWebhook('https://4d458643.ngrok.io/secret-path'); //url dentro de express
+// bot.telegram.setWebhook('https://4d458643.ngrok.io/secret-path'); //url dentro de express
+bot.telegram.setWebhook('https://2b0bcc42.ngrok.io/secret-path'); //url dentro de express
 
 expressApp.post('/secret-path', (req, res) => {
     res.send('Hello World!');
@@ -17,13 +20,6 @@ expressApp.post('/secret-path', (req, res) => {
 bot.command('hola', (ctx) => ctx.reply('Hello'));
 
 bot.command('creator', (ctx) => ctx.reply('DREAM TEAM INVICTUS, los más guapos trabajando en tu bot!'));
-
-// bot.command('help', (ctx) => {
-//     let mensaje = ctx.message.text;
-//     let msgSplit = mensaje.split(" ");
-//     let parametro = msgSplit[1]
-//     ctx.reply("-------" + devuelveTiempo(parametro))
-// });
 
 bot.command('help', (ctx) => {
     let mensaje = ctx.message.text;
@@ -35,19 +31,44 @@ bot.command('help', (ctx) => {
 
 bot.command('whereami', (ctx) => {
     let mensaje = ctx.message.text;
+    console.log(mensaje);
     let msgSplit = mensaje.split(" ");
     let parametro = msgSplit[1];
+ 
+ 
+    if(mensaje.indexOf(" ")!=undefined){
+        var n = mensaje.indexOf(" ");
+        console.log(mensaje.indexOf(" "))
+        parametro=mensaje.substring(n+1);
+    }
 
-    let url = "http://geocode.xyz/" + parametro + "?json=1";
-    var res = requestsync('GET', url);
-    let latitud = (JSON.parse(res.getBody()).latt);
-    let longitud = (JSON.parse(res.getBody()).longt);
-    ctx.reply("Latitud: "+ latitud + " Longitud: " + longitud);
+    console.log("parametro"+parametro);
+   let url = "http://geocode.xyz/" + parametro + "?json=1";
+   var res = requestsync('GET', url);
+   let latitud = (JSON.parse(res.getBody()).latt);
+   let longitud = (JSON.parse(res.getBody()).longt);
+   ctx.reply("Latitud: "+ latitud + " Longitud: " + longitud);
 
-    let url2 = 'https://maps.googleapis.com/maps/api/staticmap?center='+latitud+','+longitud+'&zoom=15&size=800x800&maptype=roadmap&markers=color:green%7Clabel:G%7C'+latitud+','+longitud+'&key=AIzaSyD5h7iot54V6U35ggOGvW6MQGE1Zciune4';
+   let url2 = 'https://maps.googleapis.com/maps/api/staticmap?center='+latitud+','+longitud+'&zoom=15&size=800x800&maptype=roadmap&markers=color:green%7Clabel:G%7C'+latitud+','+longitud+'&key=AIzaSyD5h7iot54V6U35ggOGvW6MQGE1Zciune4';
 
-    ctx.replyWithPhoto(url2);
+   ctx.replyWithPhoto(url2);
 });
+
+// bot.command('whereami', (ctx) => {
+//     let mensaje = ctx.message.text;
+//     let msgSplit = mensaje.split(" ");
+//     let parametro = msgSplit[1];
+
+//     let url = "http://geocode.xyz/" + parametro + "?json=1";
+//     var res = requestsync('GET', url);
+//     let latitud = (JSON.parse(res.getBody()).latt);
+//     let longitud = (JSON.parse(res.getBody()).longt);
+//     ctx.reply("Latitud: "+ latitud + " Longitud: " + longitud);
+
+//     let url2 = 'https://maps.googleapis.com/maps/api/staticmap?center='+latitud+','+longitud+'&zoom=15&size=800x800&maptype=roadmap&markers=color:green%7Clabel:G%7C'+latitud+','+longitud+'&key=AIzaSyD5h7iot54V6U35ggOGvW6MQGE1Zciune4';
+
+//     ctx.replyWithPhoto(url2);
+// });
 
 bot.command('weather', (ctx) => {
     let mensaje = ctx.message.text;
@@ -68,6 +89,19 @@ bot.command('weather', (ctx) => {
 
     ctx.reply(resultado)
 });
+
+
+/////////////////////////////////////
+//Comprensión lenguaje natural
+
+bot.on('text', (ctx) => {
+    nlu(ctx.message).then(dialog).then((value) => {
+        bot.telegram.sendMessage(ctx.from.id, value);
+    })
+});
+
+
+
 
 expressApp.listen(3000, () => {
     console.log('Example app listening on port 3000!')
